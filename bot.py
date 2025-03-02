@@ -42,7 +42,7 @@ async def update_server_stats():
             conn.commit()
             conn.close()
             
-            await asyncio.sleep(1800)  # 30 минут
+            await asyncio.sleep(1800)  # 30
             
         except Exception as e:
             print(f"Ошибка обновления: {e}")
@@ -132,7 +132,6 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Ошибка статистики: {str(e)}")
 async def graph(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        # Парсим аргументы (количество часов)
         args = context.args
         if not args:
             hours = 24
@@ -145,7 +144,6 @@ async def graph(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("⚠️ Укажите целое число часов (например: /graph 24)")
                 return
 
-        # Получаем данные из БД
         conn = sqlite3.connect(DATABASE_NAME)
         c = conn.cursor()
         time_threshold = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
@@ -193,11 +191,11 @@ def get_stats_data(hours):
     conn = sqlite3.connect(DATABASE_NAME)
     c = conn.cursor()
     
-    # Текущее время и время сутки назад
+
     now = datetime.now()
     yesterday = now - timedelta(hours=hours)
     
-    # Онлайн 24 часа назад
+
     c.execute(
         """SELECT players_online, timestamp 
         FROM server_stats 
@@ -207,19 +205,19 @@ def get_stats_data(hours):
         (yesterday - timedelta(minutes=30), yesterday + timedelta(minutes=30), yesterday))
     last_day_data = c.fetchone()
     
-    # Средний онлайн за сутки
+
     c.execute(
         "SELECT AVG(players_online) FROM server_stats WHERE timestamp >= ?",
         (yesterday,))
     avg_day = c.fetchone()[0]
     
-    # Рекорд за сутки
+
     c.execute(
         "SELECT MAX(players_online) FROM server_stats WHERE timestamp >= ?",
         (yesterday,))
     max_day = c.fetchone()[0]
     
-    # Рекорд за всё время
+
     c.execute("SELECT MAX(players_online) FROM server_stats")
     max_all = c.fetchone()[0]
     
@@ -234,11 +232,9 @@ def get_stats_data(hours):
 
 async def main():
     application = Application.builder().token(TOKEN).build()
-    
-    # Запускаем фоновую задачу
+
     asyncio.create_task(update_server_stats())
     
-    # Регистрируем команды
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("status", status))
     application.add_handler(CommandHandler("stats", stats))
@@ -249,11 +245,9 @@ async def main():
     await application.start()
     await application.updater.start_polling()
     
-    # Бесконечный цикл
     while True:
         await asyncio.sleep(3600)
 
-    # Корректное завершение
     await application.updater.stop()
     await application.stop()
     await application.shutdown()

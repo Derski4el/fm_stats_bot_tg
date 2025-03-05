@@ -78,11 +78,6 @@ async def update_server_stats():
                 print(f"Ошибка записи пинга: {ex}")
             await asyncio.sleep(300)  # 5 минут при ошибке
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        'Привет! Используй /help для получения списка команд.'
-    )
-
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         server = JavaServer.lookup("mc.forcemine.net")
@@ -218,6 +213,11 @@ async def graph(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"🚫 Ошибка: {str(e)}")
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        'Привет! Используй /help для получения списка команд.'
+    )
+
 def get_stats_data(hours):
     conn = sqlite3.connect(DATABASE_NAME)
     c = conn.cursor()
@@ -345,12 +345,13 @@ async def main():
     asyncio.create_task(update_server_stats())
 
     # Регистрация команд
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("status", status))
-    application.add_handler(CommandHandler("stats", stats))
     application.add_handler(CommandHandler("graph", graph))
     application.add_handler(CommandHandler("statsserver", statsserver))
     application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("status", status))
+    application.add_handler(CommandHandler("stats", stats))
+
 
     await application.initialize()
     await application.start()

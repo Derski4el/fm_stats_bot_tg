@@ -10,39 +10,37 @@ import matplotlib.pyplot as plt
 import io
 
 matplotlib.use('Agg')  # Используем бэкенд для работы без GUI
-TOKEN = ""
+TOKEN = "8009653006:AAGTcJdNlWaWHIGiQpxS0CAkcghMu89f1YI"
 DATABASE_NAME = "server_stats.db"
 
-# Инициализация базы данных
-def init_db():
-    conn = sqlite3.connect(DATABASE_NAME)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS server_stats
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  timestamp DATETIME NOT NULL,
-                  players_online INTEGER NOT NULL)''')
-    conn.commit()
-    conn.close()
+# # Инициализация базы данных
+# def init_db():
+#     conn = sqlite3.connect(DATABASE_NAME)
+#     c = conn.cursor()
+#     c.execute('''CREATE TABLE IF NOT EXISTS server_stats
+#                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
+#                   timestamp DATETIME NOT NULL,
+#                   players_online INTEGER NOT NULL)''')
+#     conn.commit()
+#     conn.close()
 
-# Миграция: добавляем таблицу ping_stats, если её нет
-def migrate_db():
-    conn = sqlite3.connect(DATABASE_NAME)
-    c = conn.cursor()
-    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ping_stats'")
-    if c.fetchone() is None:
-        c.execute('''CREATE TABLE ping_stats
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      timestamp DATETIME NOT NULL,
-                      success INTEGER NOT NULL)''')
-        conn.commit()
-        print("Таблица ping_stats успешно добавлена в базу данных.")
-    conn.close()
+# # Миграция: добавляем таблицу ping_stats, если её нет
+# def migrate_db():
+#     conn = sqlite3.connect(DATABASE_NAME)
+#     c = conn.cursor()
+#     c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ping_stats'")
+#     if c.fetchone() is None:
+#         c.execute('''CREATE TABLE ping_stats
+#                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
+#                       timestamp DATETIME NOT NULL,
+#                       success INTEGER NOT NULL)''')
+#         conn.commit()
+#         print("Таблица ping_stats успешно добавлена в базу данных.")
+#     conn.close()
 
-init_db()
-migrate_db()
+# init_db()
+# migrate_db()
 
-def clean_mc_formatting(text):
-    return re.sub(r'§.', '', str(text)).strip()
 
 async def update_server_stats():
     while True:
@@ -78,29 +76,6 @@ async def update_server_stats():
                 print(f"Ошибка записи пинга: {ex}")
             await asyncio.sleep(300)  # 5 минут при ошибке
 
-async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        server = JavaServer.lookup("mc.forcemine.net")
-        status = await server.async_status()
-
-        online_original = status.players.online
-        max_original = status.players.max
-        online_divided = round(online_original / 4.5, 2)
-        max_divided = round(max_original / 4.5, 2)
-
-        response = (
-            f"🟢 Сервер онлайн!\n"
-            f"📄 Описание: {clean_mc_formatting(status.description)}\n"
-            f"👥 Игроки: {online_original} ({online_divided})/{max_original} ({max_divided})\n"
-            f"📦 Версия: {clean_mc_formatting(status.version.name)}\n"
-            f"⏱ Пинг: {round(status.latency, 2)} мс"
-        )
-
-        await update.message.reply_text(f"```\n{response}\n```", parse_mode='MarkdownV2')
-
-    except Exception as e:
-        await update.message.reply_text(f"🔴 Ошибка: {str(e)}")
-
 def get_average_online(hours):
     conn = sqlite3.connect(DATABASE_NAME)
     c = conn.cursor()
@@ -114,38 +89,11 @@ def get_average_online(hours):
     return round(result, 2) if result else 0.0
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    periods = {
-        '1 час': 1,
-        '2 часа': 2,
-        '3 часов': 3,
-        '4 часов': 4,
-        '5 часов': 5,
-        '6 часов': 6,
-        '7 часов': 7,
-        '8 часов': 8,
-        '9 часов': 9,
-        '10 часов': 10,
-        '11 часов': 11,
-        '12 часов': 12,
-        '13 часов': 13,
-        '14 часов': 14,
-        '15 часов': 15,
-        '16 часов': 16,
-        '17 часов': 17,
-        '18 часов': 18,
-        '19 часов': 19,
-        '20 часов': 20,
-        '21 часов': 21,
-        '22 часов': 22,
-        '23 часов': 23,
-        '24 часа': 24,
-        '3 дня': 72,
-        '7 дней': 168,
-        '14 дней': 336,
-        '30 дней': 720}
+    periods = {f"{h} час{'а' if h in {1, 2, 24} else 'ов'}": h for h in range(1, 25)}
+    periods.update({f"{d} дней": d * 24 for d in [3, 7, 14, 30]})
 
-    stats_text = "📊 Статистика онлайна:\n"
     try:
+        stats_text = "📊 Статистика онлайна:\n"
         for name, hours in periods.items():
             avg = get_average_online(hours)
             avg_div = round(avg / 4.5, 2)
@@ -154,7 +102,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(stats_text)
 
     except Exception as e:
-        await update.message.reply_text(f"Ошибка статистики: {str(e)}")
+        await update.message.reply_text(f"Ошибка статистики: {e}")
 
 
 async def graph(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -312,18 +260,44 @@ async def statsserver(update: Update, context: ContextTypes.DEFAULT_TYPE):
             minutes, seconds = divmod(remainder, 60)
             return f"{days}d {hours}h {minutes}m {seconds}s"
 
+        server = JavaServer.lookup("mc.forcemine.net")
+        status = await server.async_status()
+
+        online_original = status.players.online
+        max_original = status.players.max
+        online_divided = round(online_original / 4.5, 2)
+        max_divided = round(max_original / 4.5, 2)
+
+        def clean_mc_formatting(text):
+            return re.sub(r'§.', '', str(text)).strip()
+
         response = (
-            f"Текущий онлайн: {current_online} ({round(current_online/4.5,2)})\n"
-            f"Онлайн сутки назад в это же время: {online_24h} ({round(online_24h/4.5,2)})\n"
-            f"Средний онлайн за сутки: {avg_online} ({round(avg_online/4.5,2)})\n"
-            f"Рекорд онлайна за сутки: {max_online_day} ({round(max_online_day/4.5,2)})\n"
-            f"Рекорд онлайна за всё время: {max_online_all} ({round(max_online_all/4.5,2)})\n"
+            f"🟢 Сервер онлайн!\n"
+            f"📄 Описание: {clean_mc_formatting(status.description)}\n"
+            f"👥 Игроки: {online_original} ({online_divided})/{max_original} ({max_divided})\n"
+            f"📦 Версия: {clean_mc_formatting(status.version.name)}\n"
+            f"⏱ Пинг: {round(status.latency, 2)} мс"
+        )
+
+
+        response = (
+            f"🟢 Сервер онлайн!\n"
+            f"📄 Описание: {clean_mc_formatting(status.description)}\n"
+            f"👥 Игроки: {online_original} ({int(online_divided)})/{max_original} ({int(max_divided)})\n"
+            f"📦 Версия: {clean_mc_formatting(status.version.name)}\n"
+            f"⏱ Пинг: {round(status.latency, 2)} мс\n"
+            f"\n"
+            f"Текущий онлайн: {current_online} ({round(current_online/4.5,0)})\n"
+            f"Онлайн сутки назад в это же время: {online_24h} ({round(online_24h/4.5,0)})\n"
+            f"Средний онлайн за сутки: {avg_online} ({round(avg_online/4.5,0)})\n"
+            f"Рекорд онлайна за сутки: {max_online_day} ({round(max_online_day/4.5,0)})\n"
+            f"Рекорд онлайна за всё время: {max_online_all} ({round(max_online_all/4.5,0)})\n"
             f"Неудачных пингов за сутки: {failed_pings} (аптайм: {uptime_percentage:.3f}%)\n"
             f"Максимальное время между падениями: {format_timedelta(max_gap)}\n"
             f"Текущий аптайм: {format_timedelta(current_uptime)}"
         )
 
-        await update.message.reply_text(response)
+        await update.message.reply_text(f"```\n{response}\n```", parse_mode='MarkdownV2')
 
     except Exception as e:
         await update.message.reply_text(f"Ошибка статистики сервера: {str(e)}")
@@ -349,9 +323,11 @@ async def main():
     application.add_handler(CommandHandler("statsserver", statsserver))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("status", status))
     application.add_handler(CommandHandler("stats", stats))
 
+    application.add_handler(CommandHandler("g", graph))
+    application.add_handler(CommandHandler("ss", statsserver))
+    application.add_handler(CommandHandler("s", stats))
 
     await application.initialize()
     await application.start()

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import io
 
 matplotlib.use('Agg')  # Используем бэкенд для работы без GUI
-TOKEN = "8009653006:AAGTcJdNlWaWHIGiQpxS0CAkcghMu89f1YI"
+TOKEN = ""
 DATABASE_NAME = "server_stats.db"
 
 # # Инициализация базы данных

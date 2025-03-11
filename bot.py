@@ -269,15 +269,7 @@ async def statsserver(update: Update, context: ContextTypes.DEFAULT_TYPE):
         max_divided = round(max_original / 4.5, 2)
 
         def clean_mc_formatting(text):
-            return re.sub(r'§.', '', str(text)).strip()
-
-        response = (
-            f"🟢 Сервер онлайн!\n"
-            f"📄 Описание: {clean_mc_formatting(status.description)}\n"
-            f"👥 Игроки: {online_original} ({online_divided})/{max_original} ({max_divided})\n"
-            f"📦 Версия: {clean_mc_formatting(status.version.name)}\n"
-            f"⏱ Пинг: {round(status.latency, 2)} мс"
-        )
+            return re.sub(r'§.', '', str(text)).strip()
 
 
         response = (
